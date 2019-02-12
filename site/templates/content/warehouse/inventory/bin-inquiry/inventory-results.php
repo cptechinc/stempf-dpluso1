@@ -54,7 +54,7 @@
 			<a href="#" class="list-group-item">
 				<div class="row">
 					<div class="col-xs-12">
-						<h3 class="list-group-item-heading">No items found for "<?= $input->get->text('scan'); ?>"</h3>
+						<h3 class="list-group-item-heading">No items found in "<?= $input->get->text('binID'); ?>"</h3>
 						<p class="list-group-item-text"></p>
 					</div>
 				</div>

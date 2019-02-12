@@ -1,4 +1,6 @@
 <?php
+use Purl\Url;
+
 	// Figure out page request method, then grab needed inputs
 	$requestmethod = $input->requestMethod('POST') ? 'post' : 'get';
 	$action = $input->$requestmethod->text('action');
@@ -118,6 +120,12 @@
 			$data[] = "QTY=$qty";
 			$data[] = "FROMBIN=$frombin";
 			$data[] = "TOBIN=$tobin";
+			$url = new Purl\Url($input->$requestmethod->text('page'));
+			if ($url->query->has('tobin')) {
+				$url->query->set('tobin', $tobin);
+			} elseif ($url->query->has('frombin')) {
+				$url->query->set('frombin', $frombin);
+			}
 			$session->loc = $input->$requestmethod->text('page');
 			$session->binr = 'true';
 			break;

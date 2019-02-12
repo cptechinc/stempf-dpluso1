@@ -6,7 +6,6 @@
 		$items = InventorySearchItem::get_all_distinct_itemid(session_id());
 	}
 	
-	
 	$page->body = __DIR__."/inventory-results.php";
 	$toolbar = false;
 	include $config->paths->content."common/include-toolbar-page.php";

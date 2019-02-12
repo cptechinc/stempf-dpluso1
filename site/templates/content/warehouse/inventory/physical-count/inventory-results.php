@@ -1,5 +1,5 @@
 <div class="form-group">
-	<a href="<?= $config->pages->inventory_physicalcount; ?>" class="btn btn-primary not-round">
+	<a href="<?= $page->url; ?>" class="btn btn-primary not-round">
 		<i class="fa fa-arrow-left" aria-hidden="true"></i> Back to Search
 	</a>
 </div>
@@ -13,7 +13,6 @@
 						<p class="list-group-item-text"><?= $item->desc1; ?></p>
 						
 						<?php if ($item->is_serialized() || $item->is_lotted()) : ?>
-							<p class="list-group-item-text bg-info"><strong>Bin:</strong> <?= $binID; ?> <strong>Qty:</strong> <?= InventorySearchItem::get_total_qty_itemid(session_id(), $item->itemid); ?></p>
 							<p></p>
 							<button class="btn btn-primary btn-sm" data-toggle="collapse" href="#<?= $item->itemid; ?>-lotserial" aria-expanded="false" aria-controls="<?= $item->itemid; ?>-lotserial">
 								Show / Hide <?= strtoupper($item->get_itemtypepropertydesc()) . "S"; ?>
@@ -31,7 +30,6 @@
 													<a href="<?= $physicalcounter->get_choose_itemURL($lotserial->get_itemtypeproperty(), $lotserial->get_itemidentifier()); ?>" class="btn btn-primary btn-sm">
 														Choose <?= strtoupper($lotserial->get_itemtypepropertydesc()); ?>
 													</a>
-													
 												</div>
 											</div>
 										</div>
