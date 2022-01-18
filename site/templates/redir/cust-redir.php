@@ -222,7 +222,7 @@
 	switch ($action) {
 		case 'add-customer':
 			$customer = new Customer();
-			$customer->set('custid', session_id());
+			$customer->set('custid', substr(session_id(), 0, 6));
 			$customer->set('splogin1', $input->$requestmethod->text('salesperson1'));
 			$customer->set('splogin2',  $input->$requestmethod->text('salesperson2'));
 			$customer->set('splogin3', $input->$requestmethod->text('salesperson3'));
@@ -246,7 +246,8 @@
 			$customer->set('buyingcontact', $input->$requestmethod->text('buycontact'));
 			$customer->set('certcontact', $input->$requestmethod->text('certcontact') == 'Y' ? "Y" : "N");
 			$customer->set('ackcontact', $input->$requestmethod->text('ackcontact') == 'Y' ? "Y" : "N");
-			$customer->create();
+			$session->sql = $customer->create();
+
 			$customer->create_custpermpermission($user->loginid);
 
 			$shipto = Customer::create_fromobject($customer);
@@ -313,12 +314,14 @@
 				"NOTES="
 			);
 			$session->loc = $config->pages->customer.'redir/?action=load-new-customer';
+
 			break;
 		case 'load-new-customer':
 			$custID = get_createdordn(session_id());
-			$session->sql = Customer::change_custid(session_id(), $custID);
+			$session->sql = Customer::change_custid(substr(session_id(), 0, 6), $custID);
 			$customer = Customer::load($custID);
 			$shipto = Customer::load($custID, '1');
+
 			$customer->create_custpermpermission($user->loginid);
 			$shipto->create_custpermpermission($user->loginid);
 
