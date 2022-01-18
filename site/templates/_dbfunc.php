@@ -820,32 +820,18 @@
 		}
 	}
 	
-	/**
-	 * Returns a QueryBuilder object built to query the custperm table
-	 * filtered to the Shared Logins and Login ID provided
-	 * @param  string       $loginID User Login ID
-	 * @return QueryBuilder          Query
-	 */
 	function create_custpermquery($loginID) {
 		$SHARED_ACCOUNTS = DplusWire::wire('config')->sharedaccounts;
-		$query = (new QueryBuilder())->table('custperm');
-		$query->field('custid, shiptoid');
-		$query->where('loginid', [$loginID, $SHARED_ACCOUNTS]);
-		return $query;
+		$permquery = (new QueryBuilder())->table('custperm');
+		$permquery->field('custid, shiptoid');
+		$permquery->where('loginid', [$loginID, $SHARED_ACCOUNTS]);
+		return $permquery;
 	}
 	
-	/**
-	 * Returns a QueryBuilder object built to query the customer index for the 
-	 * records that the login ID is allowed access to, and matches their query
-	 * @param  string       $loginID User Login
-	 * @param  string       $keyword Search String
-	 * @return QueryBuilder          Customer Index Query
-	 */
 	function create_searchcustindexquery($loginID, $keyword) {
 		$user = LogmUser::load($loginID);
 		$search = QueryBuilder::generate_searchkeyword($keyword);
 		$q = (new QueryBuilder())->table('custindex');
-		
 		if ($user->is_salesrep() && DplusWire::wire('pages')->get('/config/')->restrict_allowedcustomers) {
 			$permquery = create_custpermquery($loginID);
 			$q->where('(custid, shiptoid)','in', $permquery);
@@ -874,12 +860,11 @@
 				$q->order($q->expr('custid <> []', [$search]));
 			}
 		}
+		
 		return $q;
 	}
-
 	/**
-	 * Returns Customer Index records that match the search string
-	 * It uses a subquery to get the results then Pagination is built off that
+	 * Returns Customer Index records that match the Query
 	 * @param  string $keyword Query String to match
 	 * @param  int    $limit   Number of records to return
 	 * @param  int    $page    Page to start from
@@ -887,7 +872,6 @@
 	 * @param  string $loginID User Login ID, if blank, will use current user
 	 * @param  bool   $debug   Run in debug? If so, will return SQL Query
 	 * @return array           Customer Index records that match the Query
-	 * @uses create_searchcustindexquery()
 	 */
 	function search_custindexpaged($keyword, $limit = 10, $page = 1, $orderby, $loginID = '', $debug = false) {
 		$loginID = (!empty($loginID)) ? $loginID : DplusWire::wire('user')->loginid;
@@ -3487,14 +3471,6 @@
 		}
 	}
 
-	/**
-	 * Returns if an ordrhed detail record for Session ID exists
-	 * @param  string $sessionID Session ID
-	 * @param  string $ordn      Sales Order Number
-	 * @param  string $linenbr   Line Number
-	 * @param  bool   $debug     Run in debug? If so, return SQL Query
-	 * @return bool              Is there an ordrhed record for Session ID?
-	 */
 	function does_orderdetailexist($sessionID, $ordn, $linenbr, $debug = false) {
 		$q = (new QueryBuilder())->table('ordrdet');
 		$q->field('COUNT(*)');
@@ -3511,14 +3487,6 @@
 		}
 	}
 
-	/**
-	 * Retrieves Sales Order Detail Record
-	 * @param  string           $sessionID Session Identifier
-	 * @param  string           $ordn      Sales Order Number
-	 * @param  string           $linenbr   Line Number
-	 * @param  bool             $debug     Run in debug? If so return SQL Query
-	 * @return array
-	 */
 	function get_orderdetail($sessionID, $ordn, $linenbr, $debug = false) {
 		$q = (new QueryBuilder())->table('ordrdet');
 		$q->where('sessionid', $sessionID);
@@ -3622,17 +3590,6 @@
 		}
 	}
 
-	/**
-	 * Updates credit card information for Sales Order
-	 * @param  string $sessionID Session Identifier
-	 * @param  string $ordn      Sales Order Number
-	 * @param  string $paytype   Payment Type
-	 * @param  string $ccno      Credit Card Number
-	 * @param  string $expdate   Expiration Date
-	 * @param  string $ccv       CCV Number
-	 * @param  bool   $debug     Run in debug? If so, returns SQL Query
-	 * @return OrderCreditCard
-	 */
 	function update_orderhead_credit($sessionID, $ordn, $paytype, $ccno, $expdate, $ccv, $debug = false) {
 		$q = (new QueryBuilder())->table('ordrhed');
 		$q->mode('update');
@@ -3695,7 +3652,6 @@
 /* =============================================================
 	MISC ORDER FUNCTIONS
 ============================================================ */
-
 	function get_allorderdocs($sessionID, $ordn, $debug = false) {
 		$q = (new QueryBuilder())->table('orddocs');
 		$q->where('sessionid', $sessionID);
@@ -3744,12 +3700,6 @@
 /* =============================================================
 	ITEM FUNCTIONS
 ============================================================ */
-	/**
-	 * Returns an array of items that match the search query and with the customer ID if provided
-	 * @param  string $itemID  Item ID
-	 * @param  bool   $debug   Run in debug? If so, return SQL Query
-	 * @return                 Item
-	 */
 	function get_itemfrompricing($itemID, $debug  = false) {
 		$q = (new QueryBuilder())->table('pricing');
 		$q->where('itemid', $itemID);
@@ -3953,6 +3903,61 @@
 		} else {
 			$q->where('itemid', $itemID);
 		}
+		$q->limit(1);
+		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
+
+		if ($debug) {
+			return $q->generate_sqlquery($q->params);
+		} else {
+			$sql->execute($q->params);
+			$sql->setFetchMode(PDO::FETCH_CLASS, 'XRefItem');
+			return $sql->fetch();
+		}
+	}
+	
+	/**
+	 * Return the item from the cross-reference table
+	 * @param  string $itemID   Item Number / ID
+	 * @param  string $custID   Customer ID
+	 * @param  string $vendorID Vendor ID
+	 * @param  bool   $debug    Run in debug? If so, return SQL Query
+	 * @return XRefItem         Item
+	 */
+	function get_xrefitem_active($itemID, $custID = '', $vendorID = '', $debug = false) {
+		$q = (new QueryBuilder())->table('itemsearch');
+		$itemquery = (new QueryBuilder())->table('itemsearch');
+		$itemquery->field('itemid');
+		$itemquery->where('itemid', $itemID);
+		$itemquery->where('origintype', ['I', 'L']); // ITEMID found by the ITEMID, or by short item lookup // NOTE USED at Stempf
+
+		if (!empty($custID)) {
+			$custquery = (new QueryBuilder())->table('itemsearch');
+			$custquery->field('itemid');
+			$custquery->where('itemid', $itemID);
+			$custquery->where('origintype', 'C');
+			$custquery->where('originID', $custID);
+			$q->where(
+				$q
+				->orExpr()
+				->where('itemid', 'in', $itemquery)
+				->where('itemid', 'in', $custquery)
+			);
+		} elseif (!empty($vendorID)) {
+			$vendquery = (new QueryBuilder())->table('itemsearch');
+			$vendquery->field('itemid');
+			$vendquery->where('itemid', $itemID);
+			$vendquery->where('origintype', 'V');
+			$vendquery->where('originID', $vendorID);
+			$q->where(
+				$q
+				->orExpr()
+				->where('itemid', 'in', $itemquery)
+				->where('itemid', 'in', $vendquery)
+			);
+		} else {
+			$q->where('itemid', $itemID);
+		}
+		$q->where('itemstatus', 'A'); // ITEM IS ACTIVE
 		$q->limit(1);
 		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
 
@@ -5385,6 +5390,33 @@
 			return $sql->fetchColumn();
 		}
 	}
+	
+	/**
+	 * Returns the total Qty of this item ID at provided bin
+	 * @param  string $sessionID Session Identifier
+	 * @param  string $itemID    Item ID
+	 * @param  string $binID     Bin ID to grab Item
+	 * @param  bool   $debug     Run in debug? If so, return SQL Query
+	 * @return int               Number of results for this session
+	 */
+	function get_invsearch_total_qty_itemid($sessionID, $itemID, $binID = '', $debug = false) {
+		$q = (new QueryBuilder())->table('invsearch');
+		$q->field($q->expr('SUM(qty)'));
+		$q->where('sessionid', $sessionID);
+		$q->where('itemid', $itemID);
+
+		if (!empty($binID)) {
+			$q->where('bin', $binID);
+		}
+		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
+
+		if ($debug) {
+			return $q->generate_sqlquery($q->params);
+		} else {
+			$sql->execute($q->params);
+			return $sql->fetchColumn();
+		}
+	}
 
 	/**
 	 * Returns the Number of results for this session and Lot Number / Serial Number
@@ -5445,6 +5477,33 @@
 		$q = (new QueryBuilder())->table('invsearch');
 		$q->where('sessionid', $sessionID);
 		$q->group('itemid, xorigin');
+		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
+
+		if ($debug) {
+			return $q->generate_sqlquery($q->params);
+		} else {
+			$sql->execute($q->params);
+			$sql->setFetchMode(PDO::FETCH_CLASS, 'InventorySearchItem');
+			return $sql->fetchAll();
+		}
+	}
+	
+	/**
+	 * Returns an array of InventorySearchItem of invsearch results
+	 * @param  string $sessionID Session Identifier
+	 * @param  string $itemID    Item ID
+	 * @param  string $binID     Bin ID
+	 * @param  bool   $debug     Run in debug? If so, return SQL Query
+	 * @return array             [InventorySearchItem]
+	 */
+	function get_all_invsearchitems_lotserial($sessionID, $itemID, $binID, $debug = false) {
+		$q = (new QueryBuilder())->table('invsearch');
+		$q->where('sessionid', $sessionID);
+		$q->where('itemid', $itemID);
+		
+		if (!empty($binID)) {
+			$q->where('bin', $binID);
+		}
 		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
 
 		if ($debug) {

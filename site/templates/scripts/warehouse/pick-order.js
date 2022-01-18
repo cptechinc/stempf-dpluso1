@@ -1,15 +1,4 @@
 $(function() {
-    /**
-	 * The Order of Functions based on Order of Events
-	 * 1. Select / Enter Sales Order
-	 * 2. Change Bin / Change Pallet 
-	 * 3. Finish Item / Exit Order
-	 * 4. Remove Sales Order Locks
-	 */
-
-/////////////////////////////////////
-// 1. Select / Enter Sales Order
-////////////////////////////////////
     $("body").on("submit", ".sales-order-entry-form", function(e) {
         e.preventDefault();
         var form = $(this);
@@ -46,43 +35,6 @@ $(function() {
         });
     });
     
-/////////////////////////////////////
-// 2. Change Bin / Change Pallet 
-////////////////////////////////////
-    $("body").on("change", ".change-pallet", function(e) {
-        e.preventDefault();
-        var select = $(this);
-        var form = select.parent('form');
-        form.submit();
-    });
-    
-    $("body").on("click", ".change-bin", function(e) {
-        e.preventDefault();
-        var button = $(this);
-        
-        if (pickitem.item.qty.remaining > 0 && pickitem.item.qty.total_picked > 0) {
-            swal({
-                title: 'Are you sure?',
-                text: "You are trying to leave this bin without fulfilling bin item",
-                type: 'warning',
-                showCancelButton: true,
-                confirmButtonClass: 'btn btn-success',
-                cancelButtonClass: 'btn btn-danger',
-                buttonsStyling: false,
-                confirmButtonText: 'Yes!'
-            }).then(function (result) {
-                if (result) {
-                    swal_changebin();
-                }
-            }).catch(swal.noop);
-        } else {
-            swal_changebin();
-        }
-    });
-    
-/////////////////////////////////////
-// 3. Finish Item / Exit Order 
-////////////////////////////////////
     $("body").on("click", ".finish-item", function(e) {
         e.preventDefault();
         var button = $(this);
@@ -146,9 +98,30 @@ $(function() {
         }).catch(swal.noop);
     });
     
-    /////////////////////////////////////
-    // 4. Remove Sales Order Locks
-    ////////////////////////////////////
+    $("body").on("click", ".change-bin", function(e) {
+        e.preventDefault();
+        var button = $(this);
+        
+        if (pickitem.item.qty.remaining > 0 && pickitem.item.qty.total_picked > 0) {
+            swal({
+                title: 'Are you sure?',
+                text: "You are trying to leave this bin without fulfilling bin item",
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonClass: 'btn btn-success',
+                cancelButtonClass: 'btn btn-danger',
+                buttonsStyling: false,
+                confirmButtonText: 'Yes!'
+            }).then(function (result) {
+                if (result) {
+                    swal_changebin();
+                }
+            }).catch(swal.noop);
+        } else {
+            swal_changebin();
+        }
+    });
+    
     $("body").on("click", ".remove-sales-order-locks", function(e) {
         e.preventDefault();
         
@@ -176,7 +149,13 @@ $(function() {
 			}
 		}).catch(swal.noop);
     });
-
+    
+    $("body").on("change", ".change-pallet", function(e) {
+        e.preventDefault();
+        var select = $(this);
+        var form = select.parent('form');
+        form.submit();
+    });
 });
 
 function swal_changebin() {

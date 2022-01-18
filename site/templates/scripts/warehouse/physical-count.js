@@ -39,6 +39,52 @@ $(function() {
 	});
 	
 	/**
+	 * IF WAREHOUSE HAS A BIN LIST THEN SHOW A DROPDOWN LIST OF THE BIN LIST 
+	 * IF IT'S A BIN RANGE THEN WE SHOW THEM WHAT THE BIN RANGE IS
+	 * // NOTE THIS IS USED IN ALL THE STEPS
+	 */
+	$("body").on("click", ".show-possible-bins", function(e) {
+		e.preventDefault();
+		var button = $(this);
+		
+		if (whsesession.whse.bins.arranged == 'list') {
+			var bins = {};
+			var binid = '';
+			var spacesneeded = 0;
+			var spaces = '';
+			
+			for (var key in whsesession.whse.bins.bins) {
+				binid = key;
+				spacesneeded = (8 - binid.length);
+				spaces = '';
+				for (var i = 0; i <= spacesneeded; i++) {
+					spaces += '&nbsp;';
+				}
+				bins[key] = binid + spaces + whsesession.whse.bins.bins[key];
+			}
+			swal({
+				type: 'question',
+				title: 'Choose a bin',
+				input: 'select',
+				inputClass: 'form-control',
+				inputOptions: bins,
+			}).then(function (input) {
+				if (input) {
+					input_bin.val(input);
+					swal.close();
+				} 
+			}).catch(swal.noop);
+		} else {
+			var msg = 'Warehouse bin range is between ' + whsesession.whse.bins.bins.from + ' and ' + whsesession.whse.bins.bins.through;
+			swal({
+				type: 'info',
+				title: 'Bin Range',
+				text: msg
+			}).catch(swal.noop);
+		}
+	});
+	
+	/**
 	 * Validates Bin ID and returns with an Swal Error object for details
 	 * // NOTE THIS IS USED IN STEPS 1, 2
 	 * @return SwalError Error 
@@ -58,17 +104,10 @@ $(function() {
 			error = true;
 			title = 'Invalid Bin ID';
 			msg = 'Please Choose a valid bin ID';
-		} else if (whsesession.whse.bins.arranged == 'range') {
+		} else if (whsesession.whse.bins.arranged == 'list' && input_bin.val() < whsesession.whse.bins.bins.from || input_bin.val() > whsesession.whse.bins.bins.through) {
 			error = true;
 			title = 'Invalid Bin ID';
-			msg = 'Please Enter a valid bin ID';
-			html = "<h4>Valid Bin Ranges<h4>"  + create_binrangetable();
-			
-			whsesession.whse.bins.bins.forEach(function(bin) {
-				if (input_bin.val() >= bin.from && input_bin.val() <= bin.through) {
-					error = false;
-				}
-			});
+			msg = 'Bin must be between ' + whsesession.whse.bins.bins.from + ' and ' + whsesession.whse.bins.bins.through;
 		}
 		return new SwalError(error, title, msg);
 	}

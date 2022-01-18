@@ -65,24 +65,19 @@ function JsContento() {
         return this.open(element, attr) + content + this.close(element);
     },
     this.parseattributes = function(attr) {
-        if (attr.trim() != '') {
-            var array = attr.split('|');
-            var attributes = '';
-            
-            for (var i = 0; i < array.length; i++) {
-                var attribute = array[i].split('=');
-                attributes += attribute[0] + '="' + attribute[1] + '" ';
-            }
-            return attributes.trim();
-        } else {
-            return '';
+        var array = attr.split('|');
+        var attributes = '';
+        
+        for (var i = 0; i < array.length; i++) {
+            var attribute = array[i].split('=');
+            attributes += attribute[0] + '="' + attribute[1] + '" ';
         }
+        return attributes.trim();
     }
 }
 
-function SwalError(error, title, msg, html) {
+function SwalError(error, title, msg) {
     this.error = error;
     this.title = title;
     this.msg = msg;
-    this.html = html;
 }

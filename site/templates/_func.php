@@ -1,8 +1,6 @@
 <?php
 	use Dplus\ProcessWire\DplusWire;
-	use Dplus\Dpluso\ScreenFormatters\TableScreenMaker;
-	use Purl\Url;
-
+	
 	function renderNavTree($items, $maxDepth = 3) {
 		// if we've been given just one item, convert it to an array of items
 		//
@@ -17,7 +15,7 @@
 			// markup for the list item...
 			// if current item is the same as the page being viewed, add a "current" class to it
 			// markup for the link
-			if($item->id == DplusWire::wire('page')->id) {
+			if($item->id == Processwire\wire('page')->id) {
 				echo "<a href='$item->url' class='list-group-item bg-primary'>$item->title</a>";
 			} else {
 				echo "<a href='$item->url' class='list-group-item'>$item->title</a>";
@@ -35,9 +33,9 @@
 	}
 
 	function generate_documentationmenu(\Processwire\Page $page, $maxdepth = 4) {
-		$page = DplusWire::wire('pages')->get('/documentation/');
+		$page = Processwire\wire('pages')->get('/documentation/');
 
-		if (DplusWire::wire('page')->id == $page->id) {
+		if (Processwire\wire('page')->id == $page->id) {
 			generate_documentationsubmenu($page, 1);
 		} else {
 			generate_documentationsubmenu($page, $maxdepth);
@@ -50,7 +48,7 @@
 		if (!count($items)) return;
 
 		$parents = array();
-		foreach(DplusWire::wire('page')->parents as $parent) {
+		foreach(Processwire\wire('page')->parents as $parent) {
 			$parents[] = $parent->id;
 		}
 
@@ -61,8 +59,8 @@
 			// markup for the list item...
 			// if current item is the same as the page being viewed, add a "current" class to it
 			// markup for the link
-			if ($item->dplusfunction == '' || has_dpluspermission(DplusWire::wire('user')->loginid, $item->dplusfunction)) {
-				if ($item->id == DplusWire::wire('page')->id) {
+			if ($item->dplusfunction == '' || has_dpluspermission(Processwire\wire('user')->loginid, $item->dplusfunction)) {
+				if ($item->id == Processwire\wire('page')->id) {
 					echo "<li class='active'>$item->title</li>";
 					$parents[] = $item->id;
 				} elseif (in_array($item->id, $parents)) {
@@ -92,6 +90,15 @@
 /* =============================================================
    STRING FUNCTIONS
  ============================================================ */
+	function formatnumber($number, $beforedecimal, $afterdecimal) { // DEPRECATED 3/5/2018
+		$array = explode('.', $number);
+		return str_pad($array[0], $beforedecimal, '0', STR_PAD_LEFT) . '.' . str_pad($array[1], $afterdecimal, '0', STR_PAD_RIGHT);
+	}
+
+	function formatphone($number) { // DEPRECATED 3/5/2018 MOVED TO Stringer.class.php
+		return preg_replace('~.*(\d{3})[^\d]{0,7}(\d{3})[^\d]{0,7}(\d{4}).*~', '$1-$2-$3', $number);
+	}
+
 	function cleanforjs($str) {// DEPRECATED 3/5/2018 MOVED TO Stringer.class.php
 		return urlencode(str_replace(' ', '-', str_replace('#', '', $str)));
 	}
@@ -112,20 +119,182 @@
 /* =============================================================
    URL FUNCTIONS
  ============================================================ */
-	 function get_localhostURL($path) {
-		 $config = DplusWire::wire('config');
-		 $url = new Url('127.0.0.1');
-		 
-		 // IF the path provided contains the httpd directory path
-		 if (strpos($path, $config->directory_httpd) !== false) {
-			 $url->path = $path;
-		 } else {
-			 $url->path = $config->directory_httpd . $path;
-		 }
-		 return $url->getUrl();
+	function paginate($url, $page, $insertafter, $hash) { // DEPRECATED 3/5/2018 MOVED TO Paginator
+		if (strpos($url, 'page') !== false) {
+			$regex = "((page)\d{1,3})";
+			if ($page > 1) { $replace = "page".$page; } else {$replace = ""; }
+			$newurl = preg_replace($regex, $replace, $url);
+		} else {
+			$insertafter = str_replace('/', '', $insertafter)."/";
+			$regex = "(($insertafter))";
+			if ($page > 1) { $replace = $insertafter."page".$page."/";} else {$replace = $insertafter; }
+			$newurl = preg_replace($regex, $replace, $url);
+		}
+		return $newurl . $hash;
 	 }
 
+/* =============================================================
+   ORDERS FUNCTIONS
+ ============================================================ */
+	function returntracklink($carrier, $tracknbr, $on) {
+		$link = '';
+		if (strpos(strtolower($carrier), 'fed') !== false) {
+			$link = "https://www.fedex.com/apps/fedextrack/?action=track&trackingnumber=$tracknbr&cntry_code=us";
+		} elseif (strpos(strtolower($carrier), 'ups') !== false) {
+			$link = "http://wwwapps.ups.com/WebTracking/track?track=yes&trackNums=$tracknbr&loc=en_us";
+		} elseif (strpos(strtolower($carrier), 'gro') !== false) {
+			$link = "http://wwwapps.ups.com/WebTracking/track?track=yes&trackNums=$tracknbr&loc=en_us";
+		} elseif (strpos(strtolower($carrier), 'usps') !== false) {
+			$link = "https://tools.usps.com/go/TrackConfirmAction?tLabels=$tracknbr";
+		} elseif (strpos(strtolower($carrier), 'spe') !== false) {
+			$link = "http://packages.speedeedelivery.com/index.php?barcodes=[$tracknbr";
+		} elseif ((strpos(strtolower($carrier), 'will') !== false)) {
+			$link = "#$on";
+		} else {
+			$link = "#$on";
+		}
+		return $link;
+	}
 
+ /* =============================================================
+   DB FUNCTIONS
+ ============================================================ */
+	 function returnsqlquery($sql, $oldtonew, $havequotes) {
+		$i = 0;
+		foreach ($oldtonew as $old => $new) {
+			if ($havequotes[$i]) {
+				$sql = str_replace($old, "'".$new."'", $sql);
+			} else {
+				$sql = str_replace($old, $new, $sql);
+			}
+			$i++;
+		}
+		return $sql;
+	}
+
+	function returnlimitstatement($limit, $page) {
+		if ($limit) {
+			if ($page > 1 ) {$start_point = ($page * $limit) - $limit; } else { $start_point = 0; }
+			return "LIMIT ".$start_point.",".$limit;
+		} else {
+			return "";
+		}
+	}
+
+	/**
+	 * [returnpreppedquery description]
+	 * @param  [array] $originalarray [Key-Valued array with original record column values]
+	 * @param  [type] $changedarray  [Key-Valued array with changed record column values]
+	 * @return [array]                [Array that has the Set statement with prepped values, columns changed, how many need quotes, AND
+	 * 								   The count of how many values changed between the original and changed.]
+	 */
+	function returnpreppedquery($originalarray, $changedarray) {
+		$withquotes = $switching = array();
+		$setstmt = '';
+		$columns = array_keys($originalarray);
+		foreach ($columns as $column) {
+			if (strlen($changedarray[$column])) {
+				if ($originalarray[$column] != $changedarray[$column]) {
+					$prepped = ':'.$column;
+					$setstmt .= $column." = ".$prepped.", ";
+					$switching[$prepped] = $changedarray[$column];
+					$withquotes[] = true;
+				}
+			}
+		}
+		$setstmt = rtrim($setstmt, ', ');
+		return array(
+			'switching' => $switching,
+			'withquotes' => $withquotes,
+			'setstatement' => $setstmt,
+			'changecount' => sizeof($switching)
+		);
+	}
+
+	function returnupdatequery($newlinks, $oldlinks, $wherelinks) {
+		$wherestmt = '';
+		$query = returnpreppedquery($oldlinks, $newlinks);
+		foreach ($wherelinks as $column => $val) {
+			$prepped = ':x'.$column;
+			$wherestmt .= $column." = ".$prepped." AND ";
+			$query['switching'][$prepped] = $val;
+			$query['withquotes'][] = true;
+		}
+		$wherestmt = rtrim($wherestmt, ' AND ');
+		$query['wherestatement'] = $wherestmt;
+		return $query;
+	}
+
+	function returnwherelinks($linkarray) {
+		$withquotes = $switching = array();
+		$wherestmt = '';
+		$columns = array_keys($linkarray);
+		foreach ($linkarray as $key => $val) {
+			if (strlen($val)) {
+				$prepped = ':'.$key;
+				$wherestmt .= $key." = ".$prepped." AND ";
+				$switching[$prepped] = $val;
+				$withquotes[] = true;
+			}
+		}
+		$wherestmt = rtrim($wherestmt, ' AND ');
+		return array(
+			'switching' => $switching,
+			'withquotes' => $withquotes,
+			'wherestatement' => $wherestmt,
+			'changecount' => sizeof($switching)
+		);
+	}
+
+	function returninsertlinks($linkarray) {
+		$withquotes = $switching = array();
+		$columnlist = $valueslist = '';
+		$columns = array_keys($linkarray);
+		foreach ($linkarray as $key => $val) {
+			if (strlen($val)) {
+				$prepped = ':'.$key;
+				$columnlist .= $key.", ";
+				$valueslist .= $prepped.", ";
+				$switching[$prepped] = $val;
+				$withquotes[] = true;
+			}
+		}
+		$columnlist = rtrim($columnlist, ', ');
+		$valueslist = rtrim($valueslist, ', ');
+
+		return array(
+			'switching' => $switching,
+			'withquotes' => $withquotes,
+			'valuelist' => $valueslist,
+			'columnlist' => $columnlist,
+			'changecount' => sizeof($switching)
+		);
+	}
+
+ /* =============================================================
+   DATE FUNCTIONS
+ ============================================================ */
+	function get_time($timeString) {
+		$partofDay = ""; $colon = ":";
+		$timeAsString = substr($timeString, 0, 2) . $colon . substr($timeString, 2, 2);
+		$time = explode($colon, $timeAsString, 2);
+		$hour = $time[0];
+
+		$hr = (int)$hour;
+
+		if ($hr == 00) {
+			$hr = 12;
+			$partofDay = "AM";
+		} else if ($hr > 12) {
+			$hr = $hr - 12;
+			$partofDay = "PM";
+		} else {
+			$partofDay = "AM";
+		}
+
+		$time = strval($hr) . $colon . $time[1].' '.$partofDay;
+		return $time;
+	}
 
 /* =============================================================
   FILE FUNCTIONS
@@ -149,7 +318,7 @@
 		fwrite($handle, $file);
 		fclose($handle);
 	}
-
+	
 /**
  * Writes an array one datem per line into the dplus directory
  * @param  array $data      Array of Lines for the request
@@ -171,7 +340,7 @@ function write_dplusfile($data, $filename) {
 		for ($i = 0; $i < sizeof($items); $i++) {
 			$itemID = str_pad(DplusWire::wire('sanitizer')->text($items[$i]), 30, ' ');
 			$qty = DplusWire::wire('sanitizer')->text($qtys[$i]);
-
+			
 			if (empty($qty)) {$qty = "1"; }
 			$data[] = "ITEMID=".$itemID."QTY=".$qty;
 		}
@@ -190,42 +359,14 @@ function write_dplusfile($data, $filename) {
 		return $json;
 	}
 
-	/**
-	 * Creates a hash for a template file
-	 * @param  string $pathtofile Path to file from templates/
-	 * @return string             Hash for file
-	 */
-	function hash_templatefile($pathtofile) {
-		return hash_file(DplusWire::wire('config')->userAuthHashType, DplusWire::wire('config')->paths->templates.$pathtofile);
-	}
-
-	/**
-	 * Gets a URL for a template file with its hash
-	 * @param  string $pathtofile Path to file from templates/
-	 * @return string             URL for templatefile with hash
-	 */
-	function get_hashedtemplatefileURL($pathtofile) {
-		$hash = hash_templatefile($pathtofile);
-		return DplusWire::wire('config')->urls->templates."$pathtofile?v=$hash";
+	function hashtemplatefile($filename) {
+		$hash = hash_file(Processwire\wire('config')->userAuthHashType, Processwire\wire('config')->paths->templates.$filename);
+		return Processwire\wire('config')->urls->templates.$filename.'?v='.$hash;
 	}
 	
-	/**
-	 * Creates a hash for a Module file
-	 * @param  string $pathtofile Path to file from modules/
-	 * @return string             Hash for file
-	 */
-	function hash_modulefile($pathtofile) {
-		return hash_file(DplusWire::wire('config')->userAuthHashType, DplusWire::wire('config')->paths->siteModules.$pathtofile);
-	}
-	
-	/**
-	 * Gets a URL for a module file with its hash
-	 * @param  string $pathtofile Path to file from modules/
-	 * @return string             URL for templatefile with hash
-	 */
-	function get_hashedmodulefileURL($pathtofile) {
-		$hash = hash_modulefile($pathtofile);
-		return DplusWire::wire('config')->urls->siteModules."$pathtofile?v=$hash";
+	function hash_modulefile($filename) {
+		$hash = hash_file(DplusWire::wire('config')->userAuthHashType, DplusWire::wire('config')->paths->siteModules.$filename);
+		return DplusWire::wire('config')->urls->siteModules.$filename.'?v='.$hash;
 	}
 
 	function curl_redir($url) {
@@ -234,6 +375,18 @@ function write_dplusfile($data, $filename) {
 			CURLOPT_RETURNTRANSFER => 1,
 			CURLOPT_URL => $url,
 			CURLOPT_FOLLOWLOCATION => true
+		));
+		return curl_exec($curl);
+	}
+
+	function curl_post($url, $fields) {
+		$curl = curl_init();
+		curl_setopt_array($curl, array(
+			CURLOPT_RETURNTRANSFER => 1,
+			CURLOPT_URL => $url,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_POST => count($fields),
+			CURLOPT_POSTFIELDS => http_build_query($fields)
 		));
 		return curl_exec($curl);
 	}
@@ -252,3 +405,17 @@ function write_dplusfile($data, $filename) {
 		DplusWire::wire('user')->mainrole = $user->get_dplusorole();
 		DplusWire::wire('user')->addRole($user->get_dplusrole());
 	}
+
+	/**
+		 * Trigger a PHP error, warning, or notice. Automatically prepends 'CP-DPLUSO' for easier management. Note
+		 * that fatal errors (E_USER_ERROR) will prevent further processing.
+		 *
+		 * @param    string    $error          Error message (max 1024 characters)
+		 * @param    int   $level          PHP error level, from PHP's E_USER constants
+		 * @return   null
+		 */
+		function error($error, $level = E_USER_ERROR) {
+			$error = (strpos($error, 'CP-DPLUSO: ') !== 0 ? 'CP-DPLUSO: ' . $error : $error);
+			trigger_error($error, $level);
+			return;
+		}
