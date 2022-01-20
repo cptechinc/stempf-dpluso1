@@ -22,9 +22,15 @@
 							<a href="<?= $config->pages->tableformatters; ?>" class="list-group-item">Screen Configurations</a>
 						<?php endif; ?>
 					<?php endif; ?>
+
+					<a href="<?= $pages->get('template=user-actions-report')->url; ?>" class="list-group-item">
+						Call Report
+					</a>
+
 					<a href="<?= $config->pages->account.'redir/?action=logout'; ?>" class="list-group-item logout">
 						<span class="glyphicon glyphicon-log-out"></span> Log Out
 					</a>
+
 				</ul>
 			</div>
 		</div>

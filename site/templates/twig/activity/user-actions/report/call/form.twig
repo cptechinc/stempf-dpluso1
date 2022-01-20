@@ -1,0 +1,43 @@
+{% set appconfig = pages.get('/config/') %}
+
+<form action="{{ actionpanel.generate_clearfilterurl() }}" method="GET">
+	<input type="hidden" name="filter" value="filter">
+	<div class="row">
+		<div class="col-sm-2 form-group">
+			{% if (appconfig.child('name=actions').allow_changeuserview) %}
+				<h4 id="actions-assignedto">Assigned To</h4>
+
+				<select name="assignedto[]" class="selectpicker show-tick form-control input-sm" aria-labelledby="#actions-assignedto" data-style="btn-default btn-sm" multiple>
+					{% for code, rep in actionpanel.salespeople %}
+						{% set selected = actionpanel.has_filtervalue('assignedto', rep.splogin) ? 'selected' : '' %}
+						{% if (rep.splogin != '') %}
+							<option value="{{ rep.splogin }}" {{ selected }}>
+								{{ code ~ ' - ' ~ rep.spname }}
+							</option>
+						{% endif %}
+					{% endfor %}
+				</select>
+			{% endif %}
+		</div>
+		<div class="col-sm-2 form-group">
+			<h4>Date Created</h4>
+			{% set dates = input.get.offsetExists('datecreated') ? input.get.datecreated : ['', ''] %}
+			{% include 'util/form/datepicker.twig' with {'name': 'datecreated[]', 'value': dates[0]}%}
+			<label class="small text-muted">From Date </label>
+			{% include 'util/form/datepicker.twig' with {'name': 'datecreated[]', 'value': dates[1]}%}
+			<label class="small text-muted">Through Date </label>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-xs-6">
+			<button type="submit" class="btn btn-sm btn-success btn-block"><i class="fa fa-filter" aria-hidden="true"></i> Apply Filter</button>
+		</div>
+		<div class="col-xs-6">
+			{% if input.get.offsetExists('filter') %}
+				<a href="{{ actionpanel.generate_clearfilterurl() }}" class="btn btn-sm btn-warning btn-block">
+					<i class="fa fa-times" aria-hidden="true"></i> Clear Filter
+				</a>
+			{% endif %}
+		</div>
+	</div>
+</form>

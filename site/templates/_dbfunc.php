@@ -328,6 +328,32 @@
 	 * @param  string   $custID   Customer ID
 	 * @param  bool     $shiptoID Customer Shipto ID
 	 * @param  bool     $debug    Run in debug? If so, return Query
+	 * @return bool
+	 */
+	function customerShiptoExists($custID, $shiptoID = '', $debug = false) {
+		$q = (new QueryBuilder())->table('custindex');
+		$q->field('COUNT(*)');
+		$q->where('custid', $custID);
+
+		if ($shiptoID) {
+			$q->where('shiptoid', $shiptoID);
+		}
+
+		$sql = DplusWire::wire('dplusdatabase')->prepare($q->render());
+
+		if ($debug) {
+			return $q->generate_sqlquery($q->params);
+		} else {
+			$sql->execute($q->params);
+			return boolval($sql->fetchColumn());
+		}
+	}
+
+	/**
+	 * Returns Customer custindex record
+	 * @param  string   $custID   Customer ID
+	 * @param  bool     $shiptoID Customer Shipto ID
+	 * @param  bool     $debug    Run in debug? If so, return Query
 	 * @return Customer           Customer Index record as Customer Class
 	 */
 	function get_customer($custID, $shiptoID = false, $debug = false) {
@@ -819,7 +845,7 @@
 			return $sql->fetchColumn();
 		}
 	}
-	
+
 	function create_custpermquery($loginID) {
 		$SHARED_ACCOUNTS = DplusWire::wire('config')->sharedaccounts;
 		$permquery = (new QueryBuilder())->table('custperm');
@@ -827,7 +853,7 @@
 		$permquery->where('loginid', [$loginID, $SHARED_ACCOUNTS]);
 		return $permquery;
 	}
-	
+
 	function create_searchcustindexquery($loginID, $keyword) {
 		$user = LogmUser::load($loginID);
 		$search = QueryBuilder::generate_searchkeyword($keyword);
@@ -840,7 +866,7 @@
 		if (!empty($keyword)) {
 			$q->where($matchexpression);
 		}
-		
+
 		if (DplusWire::wire('config')->cptechcustomer == 'stempf') {
 			if (!empty($orderbystring)) {
 				$q->order($q->generate_orderby($orderbystring));
@@ -860,7 +886,7 @@
 				$q->order($q->expr('custid <> []', [$search]));
 			}
 		}
-		
+
 		return $q;
 	}
 	/**
@@ -3914,7 +3940,7 @@
 			return $sql->fetch();
 		}
 	}
-	
+
 	/**
 	 * Return the item from the cross-reference table
 	 * @param  string $itemID   Item Number / ID
@@ -5390,7 +5416,7 @@
 			return $sql->fetchColumn();
 		}
 	}
-	
+
 	/**
 	 * Returns the total Qty of this item ID at provided bin
 	 * @param  string $sessionID Session Identifier
@@ -5487,7 +5513,7 @@
 			return $sql->fetchAll();
 		}
 	}
-	
+
 	/**
 	 * Returns an array of InventorySearchItem of invsearch results
 	 * @param  string $sessionID Session Identifier
@@ -5500,7 +5526,7 @@
 		$q = (new QueryBuilder())->table('invsearch');
 		$q->where('sessionid', $sessionID);
 		$q->where('itemid', $itemID);
-		
+
 		if (!empty($binID)) {
 			$q->where('bin', $binID);
 		}

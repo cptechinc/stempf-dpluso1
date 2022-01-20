@@ -1,0 +1,21 @@
+<table class="table table-bordered table-condensed table-striped">
+	<tr>
+		<th>Due</th> <th>Type</th> <th>Subtype</th> <th>Regarding / Title</th> <th>View</th>
+	</tr>
+	{% if actionpanel.count_actions() == 0 %}
+		<tr>
+			<td colspan="6">No related actions found</td>
+		</tr>
+	{% endif %}
+
+	{% for action in actionpanel.get_actions() %}
+		<tr class="{{ actionpanel.generate_rowclass(action) }}">
+			<td>{{ action.generate_duedatedisplay('m/d/Y') }}</td>
+			<td>{{ action.actiontype }}</td>
+			<td>{{ action.generate_actionsubtypedescription()|raw }}</td>
+			<td>{{ action.generate_regardingdescription() }}</td>
+			<td>{{ actionpanel.generate_viewactionlink(action)|raw }}</td>
+		</tr>
+	{% endfor %}
+
+</table>

@@ -1,0 +1,25 @@
+<table class="table table-bordered table-condensed">
+	<thead>
+		<tr>
+			<th>Rep</th>
+			<th>Cust ID</th>
+			<th>Customer Name</th>
+			<th>City, State</th>
+		</tr>
+	</thead>
+
+	{% for action in actionpanel.getActionsAll() %}
+		<tr class="first-txn-row bg-light">
+			<td>{{ action.createdby }}</td>
+			<td>{{ action.customerlink }}</td>
+			<td>{{ action.customerName() }}</td>
+			<td>{{ action.customerCityState() }}</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td colspan="3">
+				{{ action.textbody }}
+			</td>
+		</tr>
+	{% endfor %}
+</table>
