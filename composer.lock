@@ -788,5 +788,6 @@
         "php": ">=7.0.0",
         "ext-gd": "*"
     },
-    "platform-dev": []
+    "platform-dev": [],
+    "plugin-api-version": "2.0.0"
 }

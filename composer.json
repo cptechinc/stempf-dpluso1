@@ -45,7 +45,7 @@
         "cptechinc/dpluso-warehouse": "dev-master"
     },
     "autoload": {
-        "files": [ 
+        "files": [
             "wire/core/ProcessWire.php",
             "vendor/cptechinc/dplus-base/vendor/autoload.php",
             "vendor/cptechinc/dplus-dpluso/vendor/autoload.php",
